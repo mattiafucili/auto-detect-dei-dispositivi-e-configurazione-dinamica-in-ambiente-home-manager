@@ -1,0 +1,146 @@
+%%%
+%
+%%% CASA_TC
+%
+%%%
+
+% Reactions to update the energy available
+reaction(
+    out(upd_max_energy(X)),
+    (operation, completion),
+    (
+        in(max_energy(_)),
+        out(max_energy(X)),
+        in(upd_max_energy(X))
+    )
+).
+
+reaction(
+    out(upd_max_energy(X)),
+    (operation, completion),
+    (
+        no(max_energy(_)),
+        out(max_energy(X)),
+        in(upd_max_energy(X))
+    )
+).
+
+% Reactions to update the temp_mode
+reaction(
+    out(upd_temp_mode(X)),
+    (operation, completion),
+    (
+        in(temp_mode(_)),
+        out(temp_mode(X)),
+        in(upd_temp_mode(X))
+    )
+).
+reaction(
+    out(upd_temp_mode(X)),
+    (operation, completion),
+    (
+        no(temp_mode(_)),
+        out(temp_mode(X)),
+        in(upd_temp_mode(X))
+    )
+).
+
+% Reactions to compute the new temperature
+% Only one user..
+reaction(
+    in(new_temperature(L,S,_)),
+    (request),
+    (
+        S < 2,
+        out(usr_temp(L,S,0))
+    )
+).
+% MODE: heat
+reaction(
+    out(usr_temp([user_pref(X,Y,W,Z)],S,0)),
+    (internal),
+    (
+        in(usr_temp([user_pref(X,Y,W,Z)],S,0)),
+        rd(temp_mode(heat)),
+        out(new_temperature([user_pref(X,Y,W,Z)],S,Y))
+    )
+).
+% MODE: not heat
+reaction(
+    out(usr_temp([user_pref(X,Y,W,Z)],S,0)),
+    (internal),
+    (
+        in(usr_temp([user_pref(X,Y,W,Z)],S,0)),
+        no(temp_mode(heat)),
+        out(new_temperature([user_pref(X,Y,W,Z)],S,W))
+    )
+).
+% 2+ Users..
+reaction(
+    in(new_temperature(L,S,_)),
+    (request),
+    (
+        S > 1,
+        out(avg_temp(L,L,S,0))
+    )
+).
+% Calculate the temperature..
+reaction(
+    out(avg_temp(L,[],S,T)),
+    (internal),
+    (
+        in(avg_temp(L,[],S,T)),
+        R is T/S,
+        out(new_temperature(L,S,R))
+    )
+).
+reaction(
+    out(avg_temp(L,[user_pref(X,Y,W,Z)|T],S,A)),
+    (internal),
+    (
+        in(avg_temp(L,[user_pref(X,Y,W,Z)|T],S,A)),
+        rd(temp_mode(heat)),
+        A1 is A+Y,
+        out(avg_temp(L,T,S,A1))
+    )
+).
+reaction(
+    out(avg_temp(L,[user_pref(X,Y,W,Z)|T],S,A)),
+    (internal),
+    (
+        in(avg_temp(L,[user_pref(X,Y,W,Z)|T],S,A)),
+        no(temp_mode(heat)),
+        A1 is A+W,
+        out(avg_temp(L,T,S,A1))
+    )
+).
+% Update prio_factor
+reaction(
+    out(upd_prio_factor(X)),
+    (operation, completion),
+    (
+        in(prio_factor(_)),
+        out(prio_factor(X)),
+        in(upd_prio_factor(X))
+    )
+).
+reaction(
+    out(upd_prio_factor(X)),
+    (operation, completion),
+    (
+        no(prio_factor(_)),
+        out(prio_factor(X)),
+        in(upd_prio_factor(X))
+    )
+).
+% Update total_energy
+reaction(
+    out(upd_total_energy(Y)),
+    (operation, completion),
+    (
+        in(total_energy_cons(X)),
+        R is X + Y,
+        in(upd_total_energy(Y)),
+        out(total_energy_cons(R))
+    )
+).

@@ -1,0 +1,272 @@
+%%%
+%
+%%% RBAC_TC
+%
+%%%
+
+% Reaction to modify a role
+reaction(
+    out(modify_role(X,Y)),
+    (operation, completion),
+    (
+        in(role(X)),
+        out(role(Y)),
+        in(modify_role(X,Y))
+    )
+).
+
+% Reaction to add a role_set
+% SSD
+reaction(
+    out(role_set_ssd(X,Y)),
+    (operation, completion),
+    (
+        no(role_set_ssd(X,_)),
+        in(role_set_ssd(X,Y)),
+        out(role_set_ssd(X,[Y]))
+    )
+).
+
+reaction(
+    out(role_set_ssd(X,Y)),
+    (operation, completion),
+    (
+        in(role_set_ssd(X,Z)),
+        out(role_set_ssd(X,[Y|Z])),
+        in(role_set_ssd(X,Y))
+    )
+).
+% DSD
+reaction(
+    out(role_set_dsd(X,Y)),
+    (operation, completion),
+    (
+        no(role_set_dsd(X,_)),
+        in(role_set_dsd(X,Y)),
+        out(role_set_dsd(X,[Y]))
+    )
+).
+
+reaction(
+    out(role_set_dsd(X,Y)),
+    (operation, completion),
+    (
+        in(role_set_dsd(X,Z)),
+        out(role_set_dsd(X,[Y|Z])),
+        in(role_set_dsd(X,Y))
+    )
+).
+
+% Reaction to add a device rule
+reaction(
+    out(dev_rule(A,B,C,D,E,F)),
+    (operation, completion),
+    (
+        no(n_dev_rule(N)),
+        in(dev_rule(A,B,C,D,E,F)),
+        out(dev_rule(1,A,B,C,D,E,F)),
+        out(n_dev_rule(1))
+    )
+).
+
+reaction(
+    out(dev_rule(A,B,C,D,E,F)),
+    (operation, completion),
+    (
+        in(n_dev_rule(N)),
+        N1 is N + 1,
+        in(dev_rule(A,B,C,D,E,F)),
+        out(n_dev_rule(N1)),
+        out(dev_rule(N1,A,B,C,D,E,F))
+    )
+).
+
+% Reactions to add a room rule
+reaction(
+    out(room_rule(A,B,C,D,E,F)),
+    (operation, completion),
+    (
+        no(n_room_rule(N)),
+        in(room_rule(A,B,C,D,E,F)),
+        out(room_rule(1,A,B,C,D,E,F)),
+        out(n_room_rule(1))
+    )
+).
+
+reaction(
+    out(room_rule(A,B,C,D,E,F)),
+    (operation, completion),
+    (
+        in(n_room_rule(N)),
+        N1 is N + 1,
+        in(room_rule(A,B,C,D,E,F)),
+        out(n_room_rule(N1)),
+        out(room_rule(N1,A,B,C,D,E,F))
+    )
+).
+
+% Reactions to delete device/room rule
+reaction(
+    in(dev_rule(X,_,_,_,_,_,_)),
+    (request),
+    (
+        in(n_dev_rule(N)),
+        N1 is N+1,
+        out(n_dev_rule(N1))
+    )
+).
+
+reaction(
+    in(room_rule(X,_,_,_,_,_,_)),
+    (request),
+    (
+        in(n_room_rule(N)),
+        N1 is N+1,
+        out(n_room_rule(N1))
+    )
+).
+
+% Reactions to delete a role and relative permissions
+reaction(
+    in(role(X)),
+    (request),
+    (
+        out(del_ass_usr_role(_,X)),
+        out(del_ass_role_perm(X,_)),
+        out(del_dev_rule(_,X,_)),
+        out(del_room_rule(_,X,_))
+    )
+).
+
+% Reaction to remove an association role-permissions
+reaction(
+    in(ass_roles_perm(X,Y)),
+    (request),
+    (
+        out(del_dev_rule(_,X,Y)),
+        out(del_room_rule(_,X,Y))
+    )
+).
+
+% Internal reactions to delete rules..
+% NOT USED!!!
+reaction(
+    out(del_ass_usr_role(Y,X)),
+    (internal, completion),
+    (
+        no(ass_user_roles(Y,X)),
+        in(del_ass_usr_role(Y,X))
+    )
+).
+reaction(
+    out(del_ass_usr_role(Y,X)),
+    (internal, completion),
+    (
+        in(ass_user_roles(Y,X)),
+        in(del_ass_usr_role(Y,X)),
+        out(del_ass_usr_role(Y,X))
+    )
+).
+
+% NOT USED!!!
+reaction(
+    out(del_ass_role_perm(Y,X)),
+    (internal, completion),
+    (
+        no(ass_roles_perm(Y,X)),
+        in(del_ass_role_perm(Y,X))
+    )
+).
+reaction(
+    out(del_ass_role_perm(Y,X)),
+    (internal, completion),
+    (
+        in(ass_roles_perm(Y,X)),
+        in(del_ass_role_perm(Y,X)),
+        out(del_ass_role_perm(Y,X))
+    )
+).
+
+% NOT USED!!!
+reaction(
+    out(del_dev_rule(Y,X,Z)),
+    (internal, completion),
+    (
+        no(dev_rule(Y,Z,X,_,_,_,_)),
+        in(del_dev_rule(Y,X,Z))
+    )
+).
+reaction(
+    out(del_dev_rule(Y,X,Z)),
+    (internal, completion),
+    (
+        in(dev_rule(Y,Z,X,_,_,_,_)),
+        in(n_dev_rule(N)),
+        N1 is N - 1,
+        out(n_dev_rule(N1)),
+        in(del_dev_rule(Y,X,Z)),
+        out(del_dev_rule(Y,X,Z))
+    )
+).
+
+% NOT USED!!!
+reaction(
+    out(del_room_rule(Y,X,Z)),
+    (internal, completion),
+    (
+        no(room_rule(Y,Z,X,_,_,_,_)),
+        in(del_room_rule(Y,X,Z))
+    )
+).
+
+reaction(
+    out(del_room_rule(Y,X,Z)),
+    (internal, completion),
+    (
+        in(room_rule(Y,Z,X,_,_,_,_)),
+        in(n_room_rule(N)),
+        N1 is N - 1,
+        out(n_room_rule(N1)),
+        in(del_room_rule(Y,X,Z)),
+        out(del_room_rule(Y,X,Z))
+    )
+).
+
+% Reactions to update RBAC statistics
+reaction(
+    out(active_role(X,Y)),
+    (operation, completion),
+    (
+        no(act_role_times(X,Y,_,_)),
+        current_time(Tc),
+        out(act_role_times(X,Y,1,Tc))
+    )
+).
+reaction(
+    out(active_role(X,Y)),
+    (operation, completion),
+    (
+        in(act_role_times(X,Y,N,_)),
+        N1 is N + 1,
+        current_time(Tc),
+        out(act_role_times(X,Y,N1,Tc))
+    )
+).
+reaction(
+    out(room_acts(X,Z,K,Tc)),
+    (operation, completion),
+    (
+        rd(active_role(Z,R)),
+        in(room_acts(X,Z,K,Tc)),
+        out(room_acts(X,Z,R,K,Tc))
+    )
+).
+reaction(
+    out(dev_acts(Y,Z,K,Tc)),
+    (operation, completion),
+    (
+        rd(active_role(Y,R)),
+        in(dev_acts(Y,Z,K,Tc)),
+        out(dev_acts(Y,R,Z,K,Tc))
+    )
+).

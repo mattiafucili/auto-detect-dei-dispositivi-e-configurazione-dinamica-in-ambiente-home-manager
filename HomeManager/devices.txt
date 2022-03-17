@@ -1,0 +1,6 @@
+device(fridge(0),info_device(0,null,-1),s)
+device(pantry(0),info_device(0,null,-1),s)
+device(mixer(0),info_device(0,null,-1),s)
+device(oven(0),info_device(0,null,-1),s)
+device(fridge(1),info_device(400,null,-1),s)
+device(fridge(1),info_device(400,null,-1),p)

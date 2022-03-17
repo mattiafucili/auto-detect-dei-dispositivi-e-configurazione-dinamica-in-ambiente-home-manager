@@ -1,0 +1,478 @@
+%%%
+%
+%%% ROOMS_TC
+%
+%%%
+
+% Device resp recorded
+reaction(
+    out(device_resp(X,Y,Z,K)),
+    (operation, completion),
+    (
+        current_time(Tc),
+        rbac@localhost:20504?out(dev_acts(Y,Z,K,Tc))
+    )
+).
+
+% Detections recorded
+reaction(
+    out(detection(X,Y,Z,K)),
+    (operation, completion),
+    (
+        current_time(Tc),
+        rbac@localhost:20504?out(room_acts(X,Z,K,Tc))
+    )
+).
+
+% Unknown USER
+reaction(
+    out(new_checkPeople(X,Y,Z)),
+    (operation, completion),
+    (
+        Y < 0,
+        out(unknown)
+    )
+).
+
+% Reactions to produce list_checkPeople tuples: new_checkPeople->list_checkPeople
+% MOVE movement
+% User already in the room
+reaction(
+    out(new_checkPeople(X,Y,Z)),
+    (operation, completion),
+    (
+        in(list_checkPeople(W,Y,Z,_)),
+        Y > 0,
+        out(list_checkPeople(X,Y,Z,_)),
+        %out(check_lights(W)),
+        in(new_checkPeople(X,Y,Z))
+    )
+).
+
+% Reactions to produce upd_list tuples: new_checkPeople->upd_list
+% ENTRY movement
+reaction(
+    out(new_checkPeople(X,Y,Z)),
+    (operation, completion),
+    (
+        no(list_checkPeople(_,Y,Z,_)), %user was not in the same room
+        Y > 0,
+        in(list_checkPeople(W,Y,_,_)),
+        out(check_lights(W)), % user was already in the house
+        out(upd_list(X,Y,Z)),
+        in(new_checkPeople(X,Y,Z)) 
+    )
+).
+% !Entry movement
+reaction(
+    out(new_checkPeople(X,Y,Z)),
+    (operation, completion),
+    (
+        no(list_checkPeople(_,Y,Z,_)), % user was not in the same room
+        Y > 0,
+        no(list_checkPeople(_,Y,_,_)), % user was not in the house
+        out(upd_list(X,Y,Z)),
+        in(new_checkPeople(X,Y,Z))
+    )
+).
+
+% List update and new plan
+% First entry into the room
+reaction(
+    out(upd_list(X,Y,Z)),
+    (internal, completion),
+    (
+        no(num_of_persons(_)),
+        out(list_checkPeople(X,Y,Z,1)),
+        out(num_of_persons(1)),
+        out(check_lights(Z)),
+        out(change_state),
+        out(new_plan(Z)),
+        in(upd_list(X,Y,Z))
+    )
+).
+% Following people
+reaction(
+    out(upd_list(X,Y,Z)),
+    (internal, completion),
+    (
+        in(num_of_persons(N)),
+        N1 is N+1,
+        out(list_checkPeople(X,Y,Z,N1)),
+        out(num_of_persons(N1)),
+        out(new_plan(Z)),
+        in(upd_list(X,Y,Z))
+    )
+).
+
+% Reaction to produce a new_plan tuple when a command is sent.
+reaction(
+    out(send_cmd(X,Y,W,Z)),
+    (operation, completion),
+    (
+        out(new_plan(Y))
+    )
+).
+
+% Device State Update: upd_dev_curr_st->dev_curr_st
+reaction(
+    out(upd_dev_curr_st(X,Y)),
+    (operation, completion),
+    (
+        in(dev_curr_st(X,_)),
+        out(dev_curr_st(X,Y)),
+        in(upd_dev_curr_st(X,Y))
+    )
+).
+reaction(
+    out(upd_dev_curr_st(X,Y)),
+    (operation, completion),
+    (
+        no(dev_curr_st(X,_)),
+        out(dev_curr_st(X,Y)),
+        in(upd_dev_curr_st(X,Y))
+    )
+).
+
+
+% Device State Update temperature: 
+reaction(
+    out(upd_curr_temp_dev(X,Y)),
+    (operation, completion),
+    (
+        in(temp_curr_dev(X,_)),
+		out(temp_curr_dev(X,Y)),
+        in(upd_curr_temp_dev(X,Y))
+    )
+).
+reaction(
+    out(upd_curr_temp_dev(X,Y)),
+    (operation, completion),
+    (
+        no(temp_curr_dev(X,_)),
+		out(temp_curr_dev(X,Y)),
+        in(upd_curr_temp_dev(X,Y))
+    )
+).
+
+% Lamps Status Reactions: upd_light_curr_st->light_curr_st
+reaction(
+    out(upd_light_curr_st(X,Y)),
+    (operation, completion),
+    (
+        in(light_curr_st(X,_)),
+        out(light_curr_st(X,Y)),
+        in(upd_light_curr_st(X,Y))
+    )
+).
+reaction(
+    out(upd_light_curr_st(X,Y)),
+    (operation, completion),
+    (
+        no(light_curr_st(X,_)),
+        out(light_curr_st(X,Y)),
+        in(upd_light_curr_st(X,Y))
+    )
+).
+
+% Windows Status Reactions: upd_window_curr_st->window_curr_st
+reaction(
+    out(upd_window_curr_st(X,Y)),
+    (operation, completion),
+    (
+        in(window_curr_st(X,_)),
+        out(window_curr_st(X,Y)),
+        in(upd_window_curr_st(X,Y))
+    )
+).
+reaction(
+    out(upd_window_curr_st(X,Y)),
+    (operation, completion),
+    (
+        no(window_curr_st(X,_)),
+        out(window_curr_st(X,Y)),
+        in(upd_window_curr_st(X,Y))
+    )
+).
+
+% Blinds Status Reactions: upd_blind_curr->blind_curr 
+reaction(
+    out(upd_blind_curr_st(X,Y)),
+    (operation, completion),
+    (
+        in(blind_curr_st(X,_)),
+        out(blind_curr_st(X,Y)),
+        in(upd_blind_curr_st(X,Y))
+    )
+).
+reaction(
+    out(upd_blind_curr_st(X,Y)),
+    (operation, completion),
+    (
+        no(blind_curr_st(X,_)),
+        out(blind_curr_st(X,Y)),
+        in(upd_blind_curr_st(X,Y))
+    )
+).
+
+% Reaction for barrier_size tuple update.
+reaction(
+    out(upd_barrier_size(X)),
+    (operation, completion),
+    (
+        in(barrier_size(_)),
+        out(barrier_size(X)),
+        in(upd_barrier_size(X))
+    )
+).
+reaction(
+    out(upd_barrier_size(X)),
+    (operation, completion),
+    (
+        no(barrier_size(_)),
+        out(barrier_size(X)),
+        in(upd_barrier_size(X))
+    )
+).
+
+% Reactions to synchronize agents
+reaction(
+    out(data_collected(X)),
+    (operation, completion),
+    (
+        in(data_collected(X)),
+        in(ready_data(X,N)),
+        N1 is N+1,
+        out(ready_data(X,N1))
+    )
+).
+
+reaction(
+    out(ready_data(X,N)),
+    (internal, completion),
+    (
+        rd(barrier_size(N)),
+        in(ready_data(X,N)),
+        out(ready_all_data(X)),
+        out(ready_data(X,0))
+    )
+).
+
+%Reactions for ready_data updates
+reaction(
+    out(upd_ready_data(X,Y)),
+    (operation, completion),
+    (
+        in(ready_data(X,_)),
+        out(ready_data(X,Y)),
+        in(upd_ready_data(X,Y))
+    )
+).
+reaction(
+    out(upd_ready_data(X,Y)),
+    (operation, completion),
+    (
+        no(ready_data(X,_)),
+        out(ready_data(X,Y)),
+        in(upd_ready_data(X,Y))
+    )
+).
+
+% Reactions to change the state of the room
+reaction(
+    out(change_state),
+    (internal, completion),
+    (
+        in(current_state(X)),
+        rd(transition(X,Y,_)),
+        in(change_state),
+        out(current_state(Y))
+    )
+).
+
+% Reaction to compute available energy
+reaction(
+    in(av_energy(T,R,M,_)),
+    (request),
+    (
+        R1 is T+R,
+        X is M-R1,
+        out(av_energy(T,R,M,X))
+    )
+).
+
+% Update temperature
+reaction(
+    out(update_temp(X,Y)),
+    (operation, completion),
+    (
+        in(curr_temp(X,_)),
+        out(curr_temp(X,Y)),
+        in(update_temp(X,Y))
+    )
+).
+reaction(
+    out(update_temp(X,Y)),
+    (operation, completion),
+    (
+        no(curr_temp(X,_)),
+        out(curr_temp(X,Y)),
+        in(update_temp(X,Y))
+    )
+).
+
+% Reactions to update the energy
+reaction(
+    out(upd_energy(X,Y)),
+    (operation, completion),
+    (
+        in(energy(X,_)),
+        out(energy(X,Y)),
+        in(upd_energy(X,Y))
+    )
+).
+reaction(
+    out(upd_energy(X,Y)),
+    (operation, completion),
+    (
+        no(energy(X,_)),
+        out(energy(X,Y)),
+        in(upd_energy(X,Y))
+    )
+).
+reaction(
+    out_r(upd_energy(X,Y)),
+    (operation, completion),
+    (
+        in_r(energy(X,_)),
+        out_r(energy(X,Y)),
+        in_r(upd_energy(X,Y))
+    )
+).
+
+% Reaction for managing device activity
+reaction(
+    out(dev_curr_act(X,Y,W,Z)),
+    (operation, completion),
+    (
+        new_trap(_,Y,finished_act(X))
+    )
+).
+
+reaction(
+    trap(finished_act(X)),
+    (operation, completion),
+    (
+        out(change_st(X,Y,W,Z))
+    )
+).
+
+% Device makes a new program which was pending.
+reaction(
+    out(change_st(X,Y,W,Z)),
+    (internal, completion),
+    (
+        in(change_st(X,Y,W,Z)),
+        in(pending(X,H,_,J,Z)),
+        in(dev_curr_act(X,_,W,Z)),
+        out(plan_cmd(X,off)),
+        out(start_new(X,H,J,W,Z))
+    )
+).
+
+reaction(
+    out(start_new(X,H,J,W,Z)),
+    (internal, completion),
+    (
+        in(start_new(X,H,J,W,Z)),
+        out(plan_cmd(X,H)),
+        out(dev_curr_act(X,J,W,Z))
+    )
+).
+% Device off (no programs pending)
+reaction(
+    out(change_st(X,Y,W,Z)),
+    (internal, completion),
+    (
+        in(change_st(X,Y,W,Z)),
+        no(pending(X,_,_,J,Z)),
+        in(dev_curr_act(X,_,W,Z)),
+        out(plan_cmd(X,off)),
+        rd(energy(Z,N)),
+        N1 is N-W,
+        out(upd_energy(Z,N1))
+    )
+).
+
+% Reaction for max_prio update.
+reaction(
+    out(upd_max_prio(X)),
+    (operation, completion),
+    (
+        in(max_prio(_)),
+        out(max_prio(X)),
+        in(upd_max_prio(X))
+    )
+).
+reaction(
+    out(upd_max_prio(X)),
+    (operation, completion),
+    (
+        no(max_prio(_)),
+        out(max_prio(X)),
+        in(upd_max_prio(X))
+    )
+).
+
+% Reactions for knowing if max priority user has sent commands
+reaction(
+    in(is_max_prio_cmd(L,_)),
+    (request),
+    (
+        out(idx_max_cmd(-1)),
+        out(find_max_prio_cmd(L,L,-1))
+    )
+).
+reaction(
+    out(find_max_prio_cmd(L,[],N)),
+    (internal),
+    (
+        in(find_max_prio_cmd(L,[],N)),
+        in(idx_max_cmd(_)),
+        out(is_max_prio_cmd(L,N))
+    )
+).
+reaction(
+    out(find_max_prio_cmd(L,[],N)),
+    (internal),
+    (
+        in(find_max_prio_cmd(L,[],N)),
+        no(idx_max_cmd(_)),
+        out(is_max_prio_cmd(L,N))
+    )
+).
+
+% Find max priority command
+reaction(
+    out(find_max_prio_cmd(L,[usr_cmd(X,Y,W,Z)|T],N)),
+    (internal),
+    (
+        in(find_max_prio_cmd(L,[usr_cmd(X,Y,W,Z)|T],N)),
+        rd(max_prio(X)),
+        in(idx_max_cmd(I)),
+        I1 is I+1,
+        out(find_max_prio_cmd(L,[],I1))
+    )
+).
+reaction(
+    out(find_max_prio_cmd(L,[usr_cmd(X,Y,W,Z)|T],N)),
+    (internal),
+    (
+        in(find_max_prio_cmd(L,[usr_cmd(X,Y,W,Z)|T],N)),
+        no(max_prio(X)),
+        in(idx_max_cmd(I)),
+        N1 is I+1,
+        out(idx_max_cmd(N1)),
+        out(find_max_prio_cmd(L,T,N))
+    )
+).
